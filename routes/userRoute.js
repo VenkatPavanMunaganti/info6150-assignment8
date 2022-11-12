@@ -14,29 +14,36 @@ router.post("/create", async (req, res) => {
         const errorMsgs = validateUser(fullname, email, password);
         const user = await findUserByMailId(email)
 
-        if (user) {
-            res.status(200).json({
-                "CreateError": `User with mail id ${email} already exists`
+        if (!fullname || !email || !password) {
+            res.status(501).json({
+                "CreateError": `Invalid parameters, Please pass fullname, email, password`
             })
-            res.send()
         } else {
-            if (Object.keys(errorMsgs).length > 0) {
-                res.status(501).json(errorMsgs)
+            if (user) {
+                res.status(501).json({
+                    "CreateError": `User with mail id ${email} already exists`
+                })
                 res.send()
             } else {
-                const salt = await bcrypt.genSalt();
-                const passwordHash = await bcrypt.hash(password, salt);
+                if (Object.keys(errorMsgs).length > 0) {
+                    res.status(501).json(errorMsgs)
+                    res.send()
+                } else {
+                    const salt = await bcrypt.genSalt();
+                    const passwordHash = await bcrypt.hash(password, salt);
 
-                const newUser = new User({
-                    fullname: fullname,
-                    email: email,
-                    password: passwordHash,
-                });
+                    const newUser = new User({
+                        fullname: fullname,
+                        email: email,
+                        password: passwordHash,
+                    });
 
-                const savedUser = await newUser.save();
-                res.json(savedUser);
+                    const savedUser = await newUser.save();
+                    res.json(savedUser);
+                }
             }
         }
+
 
     } catch (error) {
         console.log(error["code"])
@@ -55,26 +62,32 @@ router.get("/getAll", async (req, res) => {
 
 router.put('/update/:mailid', async (req, res) => {
     const mailId = req.params.mailid
-    const { name: fullname, password } = req.body
-    const errorMsgs = validateUser(fullname, null, password)
+    const { fullname, password } = req.body
 
     const user = await findUserByMailId(mailId)
-    if (Object.keys(errorMsgs).length > 0) {
-        res.status(501).json(errorMsgs)
-        res.send()
+    if (!mailId || !fullname || !password) {
+        res.status(501).json({
+            "UpdateError": `Invalid parameters, Please pass mail id in the url, and username and password in json`
+        })
     } else {
         if (!user) {
             res.status(501).json({
                 "UpdateError": `User with mail id ${mailId} not exists`
             })
         } else {
-            const salt = await bcrypt.genSalt();
-            const passwordHash = await bcrypt.hash(password, salt);
-            user.fullname = fullname
-            user.password = passwordHash
-            await user.save();
-            res.status(200).json(user)
-            res.send()
+            const errorMsgs = validateUser(fullname, null, password)
+            if (Object.keys(errorMsgs).length > 0) {
+                res.status(501).json(errorMsgs)
+                res.send()
+            } else {
+                const salt = await bcrypt.genSalt()
+                const passwordHash = await bcrypt.hash(password, salt)
+                user.fullname = fullname
+                user.password = passwordHash
+                await user.save();
+                res.status(200).json(user)
+                res.send()
+            }
         }
     }
 });
@@ -83,13 +96,19 @@ router.delete("/delete/:mailid", async (req, res) => {
     const mailId = req.params.mailid
     const user = await findUserByMailId(mailId)
 
-    if (!user) {
+    if (!mailId ) {
         res.status(501).json({
-            "DeleteError": `User with mail id ${mailId} not exists`
+            "DeleteError": `Invalid parameters, Please pass mail id in the url to delete`
         })
-    } else {
-        await user.remove()
-        res.send(await userModel.find({}))
+    }else{
+        if (!user) {
+            res.status(501).json({
+                "DeleteError": `User with mail id ${mailId} not exists`
+            })
+        } else {
+            await user.remove()
+            res.send(await userModel.find({}))
+        }
     }
 })
 

@@ -18,3 +18,7 @@ Created 4 rest end points to perform CRUD operations on users mongoDB collection
     * Method: Delete
     * Returns: List of users in the DB after deletion
     * Errors: Throws DeleteError when user with mail id does not exists in DB
+
+### Validations ###
+* Created userValidations.js file which contains validations for fullname, email, password
+* userValidate function is used to validate the input fields and returns a json with errors
